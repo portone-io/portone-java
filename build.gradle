@@ -1,0 +1,63 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        //Add only for SNAPSHOT versions
+        //maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+    }
+}
+
+plugins {
+    id "java"
+    id "maven-publish"
+    id "io.github.gradle-nexus.publish-plugin" version "1.1.0"
+    id "signing"
+}
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+group = GROUP
+version = VERSION_NAME
+
+tasks.withType(JavaCompile) {
+    JavaVersion compilerJavaVersionEnum = JavaVersion.current()
+    if (compilerJavaVersionEnum != JavaVersion.VERSION_17) {
+        throw new GradleException("JDK 17 is required to build PortOne")
+    }
+
+    options.fork = true
+    options.forkOptions.jvmArgs += ['-Xms512M', '-Xmx1g']
+
+    options.release = project.targetCompatibility.majorVersion as Integer
+
+    options.compilerArgs << "-Xlint:all" << "-Xlint:-options" << "-Xlint:-processing"
+    options.encoding = "UTF-8"
+}
+
+compileJava {
+    options.compilerArgs << "-Werror"
+}
+
+configurations.all {
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation group: "org.junit.jupiter", name: "junit-jupiter-api", version: "5.8.2"
+    testRuntimeOnly group: "org.junit.jupiter", name: "junit-jupiter-engine", version: "5.8.2"
+}
+
+jar {
+    manifest {
+        attributes("Implementation-Title": POM_NAME,
+                   "Implementation-Version": VERSION_NAME,
+                   "Bundle-SymbolicName": POM_ARTIFACT_ID,
+                   "Export-Package": "io.portone.*")
+
+        archiveVersion = VERSION_NAME
+    }
+}
+
+apply from: "deploy.gradle"
