@@ -9,12 +9,28 @@ buildscript {
 plugins {
     id "java"
     id "maven-publish"
-    id "io.github.gradle-nexus.publish-plugin" version "1.1.0"
-    id "signing"
+//    id "io.github.gradle-nexus.publish-plugin" version "1.1.0"
+    id 'org.jreleaser' version "1.12.0"
+//    id "signing"
 }
 
 group = GROUP
 version = VERSION_NAME
+
+repositories {
+    mavenCentral()
+}
+
+jar {
+    manifest {
+        attributes("Implementation-Title": POM_NAME,
+                "Implementation-Version": VERSION_NAME,
+                "Bundle-SymbolicName": POM_ARTIFACT_ID,
+                "Export-Package": "io.portone.*")
+
+        archiveVersion = VERSION_NAME
+    }
+}
 
 tasks.withType(JavaCompile) {
     JavaVersion compilerJavaVersionEnum = JavaVersion.current()
@@ -35,27 +51,113 @@ compileJava {
     options.compilerArgs << "-Werror"
 }
 
-configurations.all {
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
 
-repositories {
-    mavenCentral()
-}
 
 dependencies {
     testImplementation group: "org.junit.jupiter", name: "junit-jupiter-api", version: "5.8.2"
     testRuntimeOnly group: "org.junit.jupiter", name: "junit-jupiter-engine", version: "5.8.2"
 }
 
-jar {
-    manifest {
-        attributes("Implementation-Title": POM_NAME,
-                   "Implementation-Version": VERSION_NAME,
-                   "Bundle-SymbolicName": POM_ARTIFACT_ID,
-                   "Export-Package": "io.portone.*")
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = GROUP
+            artifactId = POM_ARTIFACT_ID
+            version = VERSION_NAME
 
-        archiveVersion = VERSION_NAME
+            from components.java
+
+            pom {
+                name = POM_NAME
+                description = POM_DESCRIPTION
+                url = POM_URL
+                packaging = POM_PACKAGING
+                licenses {
+                    license {
+                        name = POM_LICENCE_NAME
+                        url = POM_LICENCE_URL
+                        distribution = POM_LICENCE_DIST
+                    }
+                }
+                developers {
+                    developer {
+                        id = POM_DEVELOPER_ID
+                        name = POM_DEVELOPER_NAME
+                    }
+                }
+                organization {
+                    name = POM_DEVELOPER_NAME
+                    url = POM_ORGANIZATION_URL
+                }
+                scm {
+                    connection = POM_SCM_CONNECTION
+                    developerConnection = POM_SCM_DEV_CONNECTION
+                    url = POM_SCM_URL
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            url = layout.buildDirectory.dir('staging-deploy')
+        }
     }
 }
 
-apply from: "deploy.gradle"
+def getRepositoryUsername() {
+    return hasProperty("NEXUS_USERNAME") ? NEXUS_USERNAME : ""
+}
+
+def getRepositoryPassword() {
+    return hasProperty("NEXUS_PASSWORD") ? NEXUS_PASSWORD : ""
+}
+
+jreleaser {
+    signing {
+        active = 'ALWAYS'
+        armored = true
+        passphrase = '???'
+    }
+    release {
+        github {
+            token = '???'
+        }
+    }
+    deploy {
+//        includedDeployerNames = [ 'portOne' ]
+        enabled = true
+        active = 'ALWAYS'
+        maven {
+            enabled = true
+            active = 'ALWAYS'
+            mavenCentral {
+                enabled = true
+                active = 'ALWAYS'
+                'maven-central' {
+                    active = 'ALWAYS'
+                    enabled = true
+                    url = 'https://central.sonatype.com/api/v1/publisher'
+                    username = getRepositoryUsername()
+                    password = getRepositoryPassword()
+                    applyMavenCentralRules = true
+                    stagingRepositories = [ 'target/staging-deploy' ]
+                    namespace = GROUP
+                    sign = true
+                    checksums = true
+                    sourceJar = true
+                    javadocJar = true
+                    verifyPom = true
+                    connectTimeout = 20
+                    readTimeout = 60
+                    retryDelay = 10
+                    maxRetries = 60
+                }
+            }
+        }
+    }
+}
