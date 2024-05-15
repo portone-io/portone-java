@@ -16,19 +16,12 @@ jobs:
           java-version: "17" # always use 17 LTS for building
           architecture: x64
 
-      - name: Configure GPG Key
-        run: |
-          set -ex
-          echo $GPG_SIGNING_PRIVKEY | base64 --decode | gpg --import --batch --yes --pinentry-mode loopback --passphrase "$GPG_SIGNING_PASSPHRASE"
-        env:
-          GPG_SIGNING_PRIVKEY: ${{ secrets.GPG_SIGNING_PRIVKEY }}
-          GPG_SIGNING_PASSPHRASE: ${{ secrets.GPG_SIGNING_PASSPHRASE }}
-
       - name: Publish package
         run: |
-          ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository -Dorg.gradle.project.NEXUS_USERNAME=$NEXUS_USERNAME -Dorg.gradle.project.NEXUS_PASSWORD=$NEXUS_PASSWORD -Dorg.gradle.project.signing.gnupg.keyName=$GPG_SIGNING_KEYID -Dorg.gradle.project.signing.gnupg.passphrase=$GPG_SIGNING_PASSPHRASE
+          ./gradlew publishAndReleaseToMavenCentral
         env:
-          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
-          GPG_SIGNING_KEYID: ${{ secrets.GPG_SIGNING_KEYID }}
-          GPG_SIGNING_PASSPHRASE: ${{ secrets.GPG_SIGNING_PASSPHRASE }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.ORG_GRADLE_PROJECT_MAVENCENTRALUSERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.ORG_GRADLE_PROJECT_MAVENCENTRALPASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.ORG_GRADLE_PROJECT_SIGNINGINMEMORYKEYPASSWORD }}

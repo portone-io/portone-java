@@ -1,16 +1,14 @@
+import com.vanniktech.maven.publish.SonatypeHost
+
 buildscript {
     repositories {
         mavenCentral()
-        //Add only for SNAPSHOT versions
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
     }
 }
 
 plugins {
     id "java"
-    id "maven-publish"
-    id "io.github.gradle-nexus.publish-plugin" version "1.1.0"
-    id "signing"
+    id "com.vanniktech.maven.publish" version "0.28.0"
 }
 
 group = GROUP
@@ -58,4 +56,40 @@ jar {
     }
 }
 
-apply from: "deploy.gradle"
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+
+    coordinates(GROUP, POM_ARTIFACT_ID, VERSION_NAME)
+
+    pom {
+        name = POM_NAME
+        description = POM_DESCRIPTION
+        url = POM_URL
+        packaging = POM_PACKAGING
+        licenses {
+            license {
+                name = POM_LICENCE_NAME
+                url = POM_LICENCE_URL
+                distribution = POM_LICENCE_DIST
+            }
+        }
+        developers {
+            developer {
+                id = POM_DEVELOPER_ID
+                name = POM_DEVELOPER_NAME
+            }
+        }
+        organization {
+            name = POM_DEVELOPER_NAME
+            url = POM_ORGANIZATION_URL
+        }
+        scm {
+            connection = POM_SCM_CONNECTION
+            developerConnection = POM_SCM_DEV_CONNECTION
+            url = POM_SCM_URL
+        }
+    }
+}
+
+//apply from: "deploy.gradle"
